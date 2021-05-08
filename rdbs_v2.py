@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import kmeans1d
 import time
+import copy
+from contextlib import redirect_stdout
 
 from typing import List
 from enum import Enum
@@ -33,21 +35,44 @@ class Report:
         self.reported_to = reported_to
 
 
-def rtbs(honest_agent_good_will, strategic_agent_good_will, stragic_agent_raport_truthfulness, percent_of_strategic_agents):
-    cycles = 100
-    agents = generate_agents(percent_of_strategic_agents)
+class Information:
+    def __init__(self, cycle, agents):
+        self.cycle = cycle
+        self.agents = agents
 
+    def __str__(self):
+        agentInfos = []
+        for agent in self.agents:
+            agentInfos.append(agent.__str__())
+        return "\n######\nCycle: " + str(self.cycle) + str(", Agents: ") + "\n".join(agentInfos)
+
+
+def rtbs(honest_agent_good_will, strategic_agent_good_will, stragic_agent_raport_truthfulness, percent_of_strategic_agents):
+    cycles = 10
+    agents = generate_agents(percent_of_strategic_agents)
+    informations = []
     for cycle in range(cycles):
         print("Cycle: " + str(cycle))
         start = time.time()
         generate_reports(cycle, agents, honest_agent_good_will,
                          strategic_agent_good_will, stragic_agent_raport_truthfulness)
         rae(cycle, agents)
+        agent_informations = []
+
+        for agent in agents:
+            agent_information = Agent(agent.id, agent.strategy)
+            agent_information.v = agent.v
+            agent_information.avarage_reputation = agent.avarage_reputation
+            agent_informations.append(agent_information)
+
+        informations.append(Information(cycle,  agent_informations))
         end = time.time()
         print('Elapsed time: ' + str(end - start))
 
-    for agent in agents:
-        print(agent)
+    with open('results.txt', 'w') as f:
+        for info in informations:
+            with redirect_stdout(f):
+                print(info)
 
 
 def rae(cycle, agents):
@@ -69,11 +94,17 @@ def rae(cycle, agents):
             if avg_reputation_in_cluster is agent_cluster_value:
                 agents_similiar_values.append(avarage_reputation)
 
-            if avg_reputation_in_cluster is 1:
+            if avg_reputation_in_cluster == 1:
                 highest_values.append(avarage_reputation)
 
-        agent.v = (sum(agents_similiar_values) / len(agents_similiar_values)
-                   ) / (sum(highest_values) / len(highest_values))
+        n_i = safe_div(sum(agents_similiar_values),
+                       len(agents_similiar_values))
+
+        n_high = safe_div(sum(highest_values),
+                          len(highest_values))
+
+        v = safe_div(n_i, n_high)
+        agent.v = v
 
 
 def generate_agents(percent_of_strategic_agents):
@@ -98,9 +129,8 @@ def generate_reports(cycle, agents, honest_agent_good_will, strategic_agent_good
         for provider in providers:
             reputation = count_reputation(
                 agent, provider, honest_agent_good_will, strategic_agent_good_will, stragic_agent_raport_truthfulness)
-            provider_index = agents.index(provider)
-            agents[provider_index].reports.append(
-                Report(cycle, reputation, agent))
+            provider.reports.append(
+                Report(cycle, reputation[0], agent))
 
 
 def generate_providers(agent, agents):
@@ -117,12 +147,14 @@ def count_reputation(recipient, provider, honest_agent_good_will, strategic_agen
     if recipient.strategy is AgentType.STRATEGIC and provider.strategy is AgentType.HONEST:
         policy_threshold = strategic_agent_good_will
 
-    if recipient.strategy is AgentType.HONEST and provider.strategy is AgentType.HONEST:
-        policy_threshold = 1 - honest_agent_good_will
-        reputation_threshold = 1 - honest_agent_good_will
-
     if recipient.strategy is AgentType.HONEST and provider.strategy is AgentType.STRATEGIC:
         reputation_threshold = stragic_agent_raport_truthfulness
+
+    if recipient.strategy is AgentType.HONEST:
+        policy_threshold = l(recipient.v, honest_agent_good_will)
+
+    if provider.strategy is AgentType.HONEST:
+        reputation_threshold = l(provider.v, honest_agent_good_will)
 
     services_availability = np.random.uniform(0, 1, 1)
     behaviour_policy = np.minimum(services_availability, policy_threshold)
@@ -130,18 +162,25 @@ def count_reputation(recipient, provider, honest_agent_good_will, strategic_agen
     return np.minimum(behaviour_policy, reputation_threshold)
 
 
+def l(v, x):
+    return 1 if v >= 1-x else 0
+
+
 def count_and_get_agents_avarage_reputations(agents, cycle):
     reputations = []
     for agent in agents:
         avarage_reputation = 0
         for report in agent.reports:
-            if report.cycle > cycle:
-                continue
-            reported_to_index = agents.index(report.reported_to)
-            avarage_reputation += agents[reported_to_index].v * report.value
+            if report.cycle <= cycle:
+                avarage_reputation += report.reported_to.v * \
+                    report.value
         agent.avarage_reputation = avarage_reputation
         reputations.append(agent.avarage_reputation)
     return reputations
+
+
+def safe_div(x, y):
+    return 0 if y == 0 else x / y
 
 
 ###### Start RTBS ##############################
