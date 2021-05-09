@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 import kmeans1d
 import time
 import copy
-from contextlib import redirect_stdout
+import pandas as pd
 
+from contextlib import redirect_stdout
 from typing import List
 from enum import Enum
 from scipy.stats import uniform
@@ -52,24 +53,55 @@ def rtbs(honest_agent_good_will, strategic_agent_good_will, stragic_agent_raport
     agents = generate_agents(percent_of_strategic_agents)
     informations = []
     for cycle in range(cycles):
-        print("Cycle: " + str(cycle))
+        print("Cycle: {} ".format(cycle))
+
         start = time.time()
         generate_reports(cycle, agents, honest_agent_good_will,
                          strategic_agent_good_will, stragic_agent_raport_truthfulness)
         rae(cycle, agents)
-        agent_informations = []
+        save_cycle_information(informations, agents)
 
-        for agent in agents:
-            agent_information = Agent(agent.id, agent.strategy)
-            agent_information.v = agent.v
-            agent_information. avarage_reputation = agent.avarage_reputation
-            agent_informations.append(agent_information)
-
-        informations.append(Information(cycle,  agent_informations))
         end = time.time()
         print('Elapsed time: ' + str(end - start))
 
-    with open('results_x' + str(honest_agent_good_will) + '_y' + str(strategic_agent_good_will) + '_z' + str(stragic_agent_raport_truthfulness) + '.txt', 'w') as f:
+    file_name = 'results_x' + str(honest_agent_good_will) + '_y' + str(
+        strategic_agent_good_will) + '_z' + str(stragic_agent_raport_truthfulness)
+
+    save_plot(informations, file_name)
+    save_data_to_file(informations, file_name)
+
+
+def save_cycle_information(informations, agents):
+    agent_informations = []
+
+    for agent in agents:
+        agent_information = Agent(agent.id, agent.strategy)
+        agent_information.v = agent.v
+        agent_information. avarage_reputation = agent.avarage_reputation
+        agent_informations.append(agent_information)
+
+    informations.append(Information(cycle,  agent_informations))
+
+
+def save_plot(informations, file_name):
+    frame = []
+    for info in informations:
+        for agent in info.agents:
+            if agent.v != 1:
+                frame.append([info.cycle, agent.v])
+                break
+
+    columns = ["Cycle", "V"]
+    df = pd.DataFrame(frame, columns=columns)
+    print(df)
+    ax = df.plot()
+# plt.show()
+    fig = ax.get_figure()
+    fig.savefig(file_name + '.svg')
+
+
+def save_data_to_file(informations, file_name):
+    with open(file_name + '.txt', 'w') as f:
         for info in informations:
             with redirect_stdout(f):
                 print(info)
@@ -108,7 +140,7 @@ def rae(cycle, agents):
 
 
 def generate_agents(percent_of_strategic_agents):
-    number_of_agents = 1000
+    number_of_agents = 10
     agents = []
 
     for index in range(int(number_of_agents * percent_of_strategic_agents)):
