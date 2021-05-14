@@ -25,7 +25,7 @@ class Agent:
 
 
 class AgentType(Enum):
-    HONEST = 1,
+    HONEST = 1
     STRATEGIC = 2
 
 
@@ -36,22 +36,10 @@ class Report:
         self.reported_to = reported_to
 
 
-class Information:
-    def __init__(self, cycle, agents):
-        self.cycle = cycle
-        self.agents = agents
-
-    def __str__(self):
-        agentInfos = []
-        for agent in self.agents:
-            agentInfos.append(agent.__str__())
-        return "\n######\nCycle: " + str(self.cycle) + "\n" + "\n".join(agentInfos)
-
-
 def rtbs(honest_agent_good_will, strategic_agent_good_will, stragic_agent_raport_truthfulness, percent_of_strategic_agents):
     cycles = 100
     agents = generate_agents(percent_of_strategic_agents)
-    informations = []
+    infos = []
     for cycle in range(cycles):
         print("Cycle: {} ".format(cycle))
 
@@ -59,7 +47,7 @@ def rtbs(honest_agent_good_will, strategic_agent_good_will, stragic_agent_raport
         generate_reports(cycle, agents, honest_agent_good_will,
                          strategic_agent_good_will, stragic_agent_raport_truthfulness)
         rae(cycle, agents)
-        save_cycle_information(informations, agents)
+        save_cycle_information(infos, agents, cycle)
 
         end = time.time()
         print('Elapsed time: ' + str(end - start))
@@ -67,44 +55,32 @@ def rtbs(honest_agent_good_will, strategic_agent_good_will, stragic_agent_raport
     file_name = 'results_x' + str(honest_agent_good_will) + '_y' + str(
         strategic_agent_good_will) + '_z' + str(stragic_agent_raport_truthfulness)
 
-    save_plot(informations, file_name)
-    save_data_to_file(informations, file_name)
+    save_data(infos, file_name)
 
 
-def save_cycle_information(informations, agents):
-    agent_informations = []
+def save_cycle_information(infos, agents, cycle):
+    strategic_agents = []
+    honest_agents = []
 
     for agent in agents:
-        agent_information = Agent(agent.id, agent.strategy)
-        agent_information.v = agent.v
-        agent_information. avarage_reputation = agent.avarage_reputation
-        agent_informations.append(agent_information)
+        if agent.strategy == AgentType.STRATEGIC:
+            strategic_agents.append(agent.v)
+        else:
+            honest_agents.append(agent.v)
 
-    informations.append(Information(cycle,  agent_informations))
+    v_mean_strategic = np.mean(strategic_agents)
+    v_mean_honest = np.mean(honest_agents)
+
+    infos.append([cycle,  v_mean_strategic, v_mean_honest])
 
 
-def save_plot(informations, file_name):
-    frame = []
-    for info in informations:
-        for agent in info.agents:
-            if agent.v != 1:
-                frame.append([info.cycle, agent.v])
-                break
-
-    columns = ["Cycle", "V"]
-    df = pd.DataFrame(frame, columns=columns)
-    print(df)
-    ax = df.plot()
-# plt.show()
+def save_data(infos, file_name):
+    df = pd.DataFrame(
+        infos, columns=["Cycle", "Honest Agent", "Strategic Agent"])
+    ax = df.plot(x="Cycle", title="Agents in cycles")
     fig = ax.get_figure()
     fig.savefig(file_name + '.svg')
-
-
-def save_data_to_file(informations, file_name):
-    with open(file_name + '.txt', 'w') as f:
-        for info in informations:
-            with redirect_stdout(f):
-                print(info)
+    df.to_json(path_or_buf=file_name + '.json')
 
 
 def rae(cycle, agents):
@@ -228,3 +204,15 @@ rtbs(0.4, 0.8, 0.7, 0.4)
 rtbs(0.8, 0.4, 0.2, 0.4)
 rtbs(0.2, 0.8, 0.4, 0.4)
 rtbs(0.9, 0.1, 0.9, 0.4)
+
+rtbs(0.5, 0.5, 0.5, 0.2)
+rtbs(0.7, 0.2, 0.2, 0.2)
+rtbs(0.2, 0.7, 0.2, 0.2)
+rtbs(0.2, 0.2, 0.7, 0.2)
+rtbs(0.7, 0.7, 0.2, 0.2)
+rtbs(0.7, 0.7, 0.7, 0.2)
+rtbs(0.2, 0.7, 0.7, 0.2)
+rtbs(0.4, 0.8, 0.7, 0.2)
+rtbs(0.8, 0.4, 0.2, 0.2)
+rtbs(0.2, 0.8, 0.4, 0.2)
+rtbs(0.9, 0.1, 0.9, 0.2)
