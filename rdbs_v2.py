@@ -2,13 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import kmeans1d
 import time
-import copy
 import pandas as pd
 
-from contextlib import redirect_stdout
-from typing import List
 from enum import Enum
-from scipy.stats import uniform
 
 
 class Agent:
@@ -21,7 +17,7 @@ class Agent:
         self.avarage_reputation = 0
 
     def __str__(self):
-        return 'Id: ' + str(self.id) + ', Strategy: ' + str(self.strategy) + ', Avarage reputation: ' + str(self.avarage_reputation) + ', V: ' + str(self.v)
+        return 'Id: {}, Strategy: {}, Avarage Reputation: {}, V: {}'.format(self.id, self.strategy, self.avarage_reputation, self.v)
 
 
 class AgentType(Enum):
@@ -40,8 +36,10 @@ def rtbs(honest_agent_good_will, strategic_agent_good_will, stragic_agent_raport
     cycles = 100
     agents = generate_agents(percent_of_strategic_agents)
     infos = []
+    startRae = time.time()
+    print('----> Started: X: {}, Y: {}, Z: {}, Ksi: {}\n'.format(honest_agent_good_will, strategic_agent_good_will,
+          stragic_agent_raport_truthfulness, percent_of_strategic_agents))
     for cycle in range(cycles):
-        print("Cycle: {} ".format(cycle))
 
         start = time.time()
         generate_reports(cycle, agents, honest_agent_good_will,
@@ -50,11 +48,17 @@ def rtbs(honest_agent_good_will, strategic_agent_good_will, stragic_agent_raport
         save_cycle_information(infos, agents, cycle)
 
         end = time.time()
-        print('Elapsed time: ' + str(end - start))
+        print('X: {}, Y: {}, Z: {}, Ksi: {}, Cycle: {}, Elapsed time: {}'.format(honest_agent_good_will, strategic_agent_good_will,
+                                                                                 stragic_agent_raport_truthfulness, percent_of_strategic_agents, cycle, end - start))
 
-    file_name = 'results_x' + str(honest_agent_good_will) + '_y' + str(
-        strategic_agent_good_will) + '_z' + str(stragic_agent_raport_truthfulness)
+    file_name = "x{}_y{}_z{}_ksi{}".format(honest_agent_good_will, strategic_agent_good_will,
+                                           stragic_agent_raport_truthfulness, percent_of_strategic_agents)
 
+    endRae = time.time()
+    took = endRae - startRae
+    print('\n----> Ended: X: {}, Y: {}, Z: {}, Ksi: {}, Took: {}s'.format(honest_agent_good_will, strategic_agent_good_will,
+          stragic_agent_raport_truthfulness, percent_of_strategic_agents, took))
+    print('\n========================================================\n')
     save_data(infos, file_name)
 
 
@@ -116,7 +120,7 @@ def rae(cycle, agents):
 
 
 def generate_agents(percent_of_strategic_agents):
-    number_of_agents = 10
+    number_of_agents = 1000
     agents = []
 
     for index in range(int(number_of_agents * percent_of_strategic_agents)):
@@ -193,6 +197,7 @@ def safe_div(x, y):
 
 ###### Start RTBS ##############################
 # rtbs(x, y, z, ksi)
+
 rtbs(0.5, 0.5, 0.5, 0.4)
 rtbs(0.7, 0.2, 0.2, 0.4)
 rtbs(0.2, 0.7, 0.2, 0.4)
@@ -204,7 +209,6 @@ rtbs(0.4, 0.8, 0.7, 0.4)
 rtbs(0.8, 0.4, 0.2, 0.4)
 rtbs(0.2, 0.8, 0.4, 0.4)
 rtbs(0.9, 0.1, 0.9, 0.4)
-
 rtbs(0.5, 0.5, 0.5, 0.2)
 rtbs(0.7, 0.2, 0.2, 0.2)
 rtbs(0.2, 0.7, 0.2, 0.2)
